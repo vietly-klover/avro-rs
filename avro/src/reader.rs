@@ -41,7 +41,7 @@ use std::{
 
 /// Internal Block reader.
 #[derive(Debug, Clone)]
-struct Block<'r, R> {
+pub struct Block<'r, R> {
     reader: R,
     /// Internal buffering to reduce allocation.
     buf: Vec<u8>,
@@ -73,6 +73,21 @@ impl<'r, R: Read> Block<'r, R> {
 
         block.read_header()?;
         Ok(block)
+    }
+
+    pub fn cowabunga(reader: R, schemata: Vec<&'r Schema>) -> Block<'r, R> {
+        Block {
+            reader,
+            codec: Codec::Null,
+            writer_schema: Schema::Null,
+            schemata,
+            buf: vec![],
+            buf_idx: 0,
+            message_count: 0,
+            marker: [0; 16],
+            user_metadata: Default::default(),
+            names_refs: Default::default(),
+        }
     }
 
     /// Try to read the header and to set the writer `Schema`, the `Codec` and the marker based on
@@ -347,6 +362,15 @@ impl<'a, R: Read> Reader<'a, R> {
             should_resolve_schema: false,
         };
         Ok(reader)
+    }
+
+    pub fn new_with_block(block: Block<'a, R>) -> Reader<'a, R> {
+        Reader {
+            block,
+            reader_schema: None,
+            errored: false,
+            should_resolve_schema: false,
+        }
     }
 
     /// Creates a `Reader` given a reader `Schema` and something implementing the `io::Read` trait
